@@ -1,5 +1,40 @@
 #!/bin/bash
 
+# Get the current hostname of the system
+current_hostname=$(hostname)
+
+# Define variables for the NFS share
+nfs_server="your_nfs_server"
+nfs_share="/path/to/your_nfs_share"
+nfs_folder="$current_hostname" # Use the hostname as the folder name on the share
+local_folder="/path/to/my_local_folder"
+temporary_mount_point="/mnt/temp_nfs_mount"
+log_file="/var/log/mount_nfs_share.log"
+max_log_files=5
+
+# Function to check and add logrotate configuration
+setup_logrotate() {
+    local log_file="$1"
+    logrotate_config="/etc/logrotate.d/$log_file"
+
+    if [ ! -f "$logrotate_config" ]; then
+        echo "Creating logrotate configuration for '$log_file'..."
+        sudo tee "$logrotate_config" > /dev/null <<EOL
+"/var/log/$log_file" {
+    rotate 5
+    daily
+    compress
+    missingok
+    notifempty
+}
+EOL
+        # Replace <your_username> and <your_group> with your actual username and group.
+        echo "Logrotate configuration added for '$log_file'."
+    else
+        echo "Logrotate configuration for '$log_file' already exists."
+    fi
+}
+
 # Function to stop all running Docker containers
 stop_docker_containers() {
     echo "Stopping all running Docker containers..."
@@ -47,18 +82,6 @@ prune_docker_images() {
     docker image prune -af
 }
 
-# Get the current hostname of the system
-current_hostname=$(hostname)
-
-# Define variables for the NFS share
-nfs_server="your_nfs_server"
-nfs_share="/path/to/your_nfs_share"
-nfs_folder="$current_hostname" # Use the hostname as the folder name on the share
-local_folder="/path/to/my_local_folder"
-temporary_mount_point="/mnt/temp_nfs_mount"
-log_file="/var/log/mount_nfs_share.log"
-max_log_files=5
-
 # Function to log messages to the log file
 log_message() {
     echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" >> "$log_file"
@@ -73,6 +96,11 @@ cleanup_and_exit() {
     log_message "Script execution completed."
     exit
 }
+
+# --- Script Start ---
+
+# Setup Log rotation
+setup_logrotate "$log_file"
 
 # Trap signals to ensure proper cleanup before exiting
 trap cleanup_and_exit SIGINT SIGTERM
