@@ -9,8 +9,7 @@ nfs_share="/path/to/your_nfs_share"
 nfs_folder="$current_hostname" # Use the hostname as the folder name on the share
 local_folder="/path/to/my_local_folder"
 temporary_mount_point="/mnt/temp_nfs_mount"
-log_file="/var/log/mount_nfs_share.log"
-max_log_files=5
+log_file="/var/log/Docker_Backup.log"
 
 # Function to check and add logrotate configuration
 setup_logrotate() {
@@ -89,6 +88,7 @@ log_message() {
 
 # Function to clean up the temporary mount point and exit
 cleanup_and_exit() {
+    log_message "Starting Docker Containers"
     start_docker_containers # Start any previously stopped Docker containers before exit
     log_message "Unmounting the NFS share and cleaning up..."
     umount "$temporary_mount_point"
@@ -156,12 +156,9 @@ prune_docker_volumes
 prune_docker_images
 log_message "Unused Docker volumes and images pruned."
 
-# Perform log rotation
-logrotate -s /tmp/logrotate_status --num "${max_log_files}" "$log_file"
-
 # Start previously stopped Docker containers after backup
-start_docker_containers
-log_message "Docker containers started."
+# start_docker_containers
+# log_message "Docker containers started."
 
 # Unmount and clean up when done
 cleanup_and_exit

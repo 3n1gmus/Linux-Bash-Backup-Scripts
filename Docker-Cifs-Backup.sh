@@ -91,6 +91,7 @@ log_message() {
 
 # Function to clean up the temporary mount point and exit
 cleanup_and_exit() {
+    log_message "Starting Docker containers."
     start_docker_containers # Start any previously stopped Docker containers before exit
     log_message "Unmounting the CIFS share and cleaning up..."
     umount "$temporary_mount_point"
@@ -158,12 +159,9 @@ prune_docker_volumes
 prune_docker_images
 log_message "Unused Docker volumes and images pruned."
 
-# Perform log rotation
-logrotate -s /tmp/logrotate_status --num "${max_log_files}" "$log_file"
-
 # Start previously stopped Docker containers after backup
-start_docker_containers
-log_message "Docker containers started."
+# start_docker_containers
+# log_message "Docker containers started."
 
 # Unmount and clean up when done
 cleanup_and_exit
