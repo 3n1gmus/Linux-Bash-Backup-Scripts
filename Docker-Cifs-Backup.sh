@@ -98,7 +98,7 @@ if [ ! -d "$temporary_mount_point/$cifs_folder" ]; then
 fi
 
 # Create a backup of the local folder with the hostname and date in the filename, and compress it using gzip
-backup_filename="${current_hostname}_$(date +'%Y%m%d').tar.gz"
+backup_filename="${current_hostname}_DockerBackup_$(date +'%Y%m%d').tar.gz"
 log_message "Creating a backup of the local folder..."
 tar -czvf "$temporary_mount_point/$cifs_folder/$backup_filename" "$local_folder"
 
