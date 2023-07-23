@@ -14,8 +14,25 @@ start_docker_containers() {
 
 # Function to update all Docker images
 update_docker_images() {
-    echo "Updating all Docker images..."
-    docker pull $(docker images | grep -v 'REPOSITORY' | awk '{print $1}')
+    local installed_images=$(docker images --format "{{.Repository}}")
+    echo "List of currently installed images:"
+    echo "$installed_images"
+    echo
+
+    if [ -n "$installed_images" ]; then
+        for image in $installed_images; do
+            echo "Updating $image..."
+            docker pull "$image"
+            if [ $? -eq 0 ]; then
+                echo "$image successfully updated."
+            else
+                echo "Error updating $image."
+            fi
+            echo
+        done
+    else
+        echo "No images found to update."
+    fi
 }
 
 # Function to prune unused Docker volumes
@@ -67,15 +84,6 @@ log_message "Hostname: $current_hostname"
 stop_docker_containers
 log_message "Docker containers stopped."
 
-# Update all Docker images
-update_docker_images
-log_message "Docker images updated."
-
-# Prune unused Docker volumes and images
-prune_docker_volumes
-prune_docker_images
-log_message "Unused Docker volumes and images pruned."
-
 # Check if the temporary mount point already exists, if not, create it
 if [ ! -d "$temporary_mount_point" ]; then
     log_message "Creating temporary mount point..."
@@ -110,6 +118,15 @@ if [ $? -eq 0 ]; then
 else
     log_message "Failed to create the backup. Please check the local folder path and permissions."
 fi
+
+# Update all Docker images
+update_docker_images
+log_message "Docker images updated."
+
+# Prune unused Docker volumes and images
+prune_docker_volumes
+prune_docker_images
+log_message "Unused Docker volumes and images pruned."
 
 # Perform log rotation
 logrotate -s /tmp/logrotate_status --num "${max_log_files}" "$log_file"

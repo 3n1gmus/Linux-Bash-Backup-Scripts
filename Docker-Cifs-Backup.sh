@@ -14,8 +14,25 @@ start_docker_containers() {
 
 # Function to update all Docker images
 update_docker_images() {
-    echo "Updating all Docker images..."
-    docker pull $(docker images | grep -v 'REPOSITORY' | awk '{print $1}')
+    local installed_images=$(docker images --format "{{.Repository}}")
+    echo "List of currently installed images:"
+    echo "$installed_images"
+    echo
+
+    if [ -n "$installed_images" ]; then
+        for image in $installed_images; do
+            echo "Updating $image..."
+            docker pull "$image"
+            if [ $? -eq 0 ]; then
+                echo "$image successfully updated."
+            else
+                echo "Error updating $image."
+            fi
+            echo
+        done
+    else
+        echo "No images found to update."
+    fi
 }
 
 # Function to prune unused Docker volumes
