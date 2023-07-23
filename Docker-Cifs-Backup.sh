@@ -9,7 +9,7 @@ stop_docker_containers() {
 # Function to start all previously stopped Docker containers
 start_docker_containers() {
     echo "Starting previously stopped Docker containers..."
-    docker start $(docker ps -a -q -f "status=exited")
+    docker start $(docker ps -aq)
 }
 
 # Function to update all Docker images
@@ -73,11 +73,6 @@ log_message "Docker containers stopped."
 update_docker_images
 log_message "Docker images updated."
 
-# Prune unused Docker volumes and images
-prune_docker_volumes
-prune_docker_images
-log_message "Unused Docker volumes and images pruned."
-
 # Check if the temporary mount point already exists, if not, create it
 if [ ! -d "$temporary_mount_point" ]; then
     log_message "Creating temporary mount point..."
@@ -112,6 +107,11 @@ if [ $? -eq 0 ]; then
 else
     log_message "Failed to create the backup. Please check the local folder path and permissions."
 fi
+
+# Prune unused Docker volumes and images
+prune_docker_volumes
+prune_docker_images
+log_message "Unused Docker volumes and images pruned."
 
 # Perform log rotation
 logrotate -s /tmp/logrotate_status --num "${max_log_files}" "$log_file"
