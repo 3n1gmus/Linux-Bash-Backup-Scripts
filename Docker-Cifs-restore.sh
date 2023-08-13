@@ -7,6 +7,7 @@ CIFS_SHARE_SERVER="your_cifs_server"
 CIFS_SHARE_PATH="your_share_path"
 TEMP_MOUNT_DIR="/mnt/temp_mount"
 LOCAL_DECOMPRESS_DIR="/path/to/local_directory"
+TAR_GZ_FILE="example.tar.gz" # Restore File
 
 # Create the temporary mount directory if it doesn't exist
 mkdir -p $TEMP_MOUNT_DIR
@@ -17,9 +18,6 @@ mount -t cifs //$CIFS_SHARE_SERVER/$CIFS_SHARE_PATH $TEMP_MOUNT_DIR -o username=
 # Check if the mount was successful
 if [ $? -eq 0 ]; then
     echo "CIFS share mounted successfully to $TEMP_MOUNT_DIR."
-
-    # Define the name of the tar.gz file on the CIFS share
-    TAR_GZ_FILE="example.tar.gz"
 
     # Check if the tar.gz file exists on the CIFS share
     if [ -f "$TEMP_MOUNT_DIR/$TAR_GZ_FILE" ]; then

@@ -115,10 +115,6 @@ log_message "Hostname: $current_hostname"
 stop_docker_containers
 log_message "Docker containers stopped."
 
-# Update all Docker images
-update_docker_images
-log_message "Docker images updated."
-
 # Check if the temporary mount point already exists, if not, create it
 if [ ! -d "$temporary_mount_point" ]; then
     log_message "Creating temporary mount point..."
@@ -153,6 +149,10 @@ if [ $? -eq 0 ]; then
 else
     log_message "Failed to create the backup. Please check the local folder path and permissions."
 fi
+
+# Update all Docker images
+update_docker_images
+log_message "Docker images updated."
 
 # Prune unused Docker volumes and images
 prune_docker_volumes
