@@ -1,14 +1,17 @@
+---
+
 ```markdown
-## Docker Backup & Restore Utility Script
+# Unified Docker Backup & Restore Utility Script
 
 This repository contains a unified, production-ready Bash script that handles both **backups** and **restores** for your Docker environment data using either **CIFS/SMB** or **NFS** network storage protocols. 
 
-It streamlines your disaster recovery process by automatically managing the lifecycle of your Docker containers during maintenance tasks, keeping localized application logs via `logrotate`, and optimizing your environment through automated image and volume clean-ups.
+Instead of juggling multiple scripts for different environments, this utility consolidates all logic into a single file driven by modular command-line flags and a distinct, secure configuration file.
 
-### 🚀 Features
+## 🚀 Features
 * **Unified Interface**: One script handles backups and restores across multiple protocols.
 * **Smart Host Routing**: Backups are dynamically saved into a subfolder named after the host machine.
-* **Cross-Host Restores**: Easily restore a backup from a different machine onto your current machine using hostname overrides.
+* **Cross-Host Restores**: Easily restore a backup from a different machine onto your current machine using host directory overrides.
+* **Automated Retention Management**: Clears out old backups automatically using a configurable threshold variable (`RETENTION_DAYS`).
 * **Docker Lifecycle Management**: Automatically stops containers before safe backup execution and safely spins them back up afterward.
 * **Environment Maintenance**: Auto-pulls updated Docker images and prunes unused volumes/dangling layers post-backup.
 * **Credential Isolation**: Keeps your storage passwords and endpoints separated cleanly in an external configuration file.
@@ -18,7 +21,7 @@ It streamlines your disaster recovery process by automatically managing the life
 
 ## 🛠️ Configuration Setup
 
-To keep your network credentials secure and separate from the logic, the script utilizes a standalone configuration file. 
+To keep your network credentials secure and separate from the script execution logic, the utility reads settings from a standalone configuration file.
 
 1. Create a file named `docker_storage.conf` in the same directory as the script:
    ```bash
@@ -27,22 +30,25 @@ To keep your network credentials secure and separate from the logic, the script 
 
 ```
 
-*(Note: Setting the permissions to `600` ensures only the file owner can read or write to it, safeguarding your plain-text passwords).*
+*(Note: Setting the permissions to `600` ensures only the file owner can read or write to it, safeguarding your plain-text passwords from other system users).*
 
-2. Open the file and populate your respective server details:
+2. Open the file and populate your respective storage network details:
 ```ini
 # --- CIFS/SMB Configuration ---
 CIFS_USERNAME="your_cifs_username"
 CIFS_PASSWORD="your_cifs_password"
-CIFS_SERVER="your_cifs_server"
+CIFS_SERVER="your_cifs_server_ip_or_hostname"
 CIFS_SHARE="your_cifs_share_name"
 
 # --- NFS Configuration ---
-NFS_SERVER="your_nfs_server"
+NFS_SERVER="your_nfs_server_ip_or_hostname"
 NFS_SHARE_PATH="/path/to/your_nfs_share"
 
 # --- Local Directory ---
-LOCAL_FOLDER="/path/to/my_local_folder"
+LOCAL_FOLDER="/path/to/my_local_docker_folder"
+
+# --- Retention Configuration ---
+RETENTION_DAYS=14  # Keeps backups for 14 days, deletes anything older. Set to 0 to disable.
 
 ```
 
@@ -73,7 +79,7 @@ sudo ./docker-storage-util.sh -m <mode> -p <protocol> [-f <filename>] [-H <targe
 
 ## 💡 Code Examples
 
-Ensure the script is executable before running:
+Ensure the script is marked as executable before running:
 
 ```bash
 chmod +x docker-storage-util.sh
@@ -82,7 +88,7 @@ chmod +x docker-storage-util.sh
 
 ### 1. Backup Examples
 
-During a backup, the script automatically builds a dynamic archive name formatted as `${HOSTNAME}_DockerBackup_YYYYMMDD.tar.gz`. It places it inside a host-specific subdirectory on your remote share.
+During a backup, the script automatically builds a dynamic archive name formatted as `${HOSTNAME}_DockerBackup_YYYYMMDD.tar.gz`. It places it inside a host-specific subdirectory on your remote share. After completion, it will verify and automatically purge backups older than your configured `RETENTION_DAYS`.
 
 * **Run a standard CIFS/SMB Backup:**
 ```bash
@@ -91,7 +97,14 @@ sudo ./docker-storage-util.sh -m backup -p cifs
 ```
 
 
-* **Run a Backup and force it into a custom folder layout (e.g., matching a cluster name):**
+* **Run a standard Network File System (NFS) Backup:**
+```bash
+sudo ./docker-storage-util.sh -m backup -p nfs
+
+```
+
+
+* **Force a backup into a custom directory path layout (e.g., matching a cluster name instead of the local machine hostname):**
 ```bash
 sudo ./docker-storage-util.sh -m backup -p nfs -H MyClusterName
 
@@ -124,5 +137,16 @@ If you host your configuration file securely elsewhere in the file system (e.g.,
 
 ```bash
 sudo ./docker-storage-util.sh -m backup -p nfs -c /etc/docker_storage.conf
+
+```
+
+---
+
+## 🪵 Logging & Operations
+
+The script writes verbose logs containing timestamps, execution modes, and protocol markers to:
+`/var/log/Docker_Backup_Restore.log`
+
+On its first run, it dynamically sets up a `logrotate` block inside `/etc/logrotate.d/` to prevent logs from over-allocating system space by rotating them daily and holding a maximum history of 5 archives.
 
 ```
