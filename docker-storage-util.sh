@@ -3,8 +3,9 @@
 # --- Default Variables & Flags ---
 MODE=""
 PROTOCOL=""
-TAR_GZ_FILE=""  # Will be populated by the -f flag
+TAR_GZ_FILE=""
 CURRENT_HOSTNAME=$(hostname)
+TARGET_HOSTNAME=$(hostname) # Defaults to current hostname, can be overridden
 LOG_FILE="/var/log/Docker_Backup_Restore.log"
 TEMPORARY_MOUNT_POINT="/mnt/temp_docker_storage"
 CONFIG_FILE="./docker_storage.conf"
@@ -12,10 +13,11 @@ CONFIG_FILE="./docker_storage.conf"
 # --- Helper & Lifecycle Functions ---
 
 usage() {
-    echo "Usage: $0 -m <backup|restore> -p <cifs|nfs> [-f <restore_filename>] [-c <config_file_path>]"
+    echo "Usage: $0 -m <backup|restore> -p <cifs|nfs> [-f <restore_filename>] [-H <target_hostname>] [-c <config_file_path>]"
     echo "  -m : Mode execution (backup or restore)"
     echo "  -p : Storage protocol (cifs or nfs)"
     echo "  -f : Specific filename to extract (Required for restore mode)"
+    echo "  -H : Override hostname folder on the share (Defaults to local hostname)"
     echo "  -c : Path to configuration file (Default: ./docker_storage.conf)"
     exit 1
 }
@@ -88,11 +90,13 @@ cleanup_and_exit() {
 }
 
 # --- Parse Arguments ---
-while getopts "m:p:f:c:" opt; do
+# Added 'H:' to handle the hostname override flag
+while getopts "m:p:f:H:c:" opt; do
     case "$opt" in
         m) MODE=$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]') ;;
         p) PROTOCOL=$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]') ;;
         f) TAR_GZ_FILE="$OPTARG" ;;
+        H) TARGET_HOSTNAME="$OPTARG" ;;
         c) CONFIG_FILE="$OPTARG" ;;
         *) usage ;;
     esac
@@ -122,7 +126,8 @@ setup_logrotate
 trap cleanup_and_exit SIGINT SIGTERM
 
 log_message "=== Starting Unified Config/Param-Driven Script ==="
-log_message "Hostname: $CURRENT_HOSTNAME"
+log_message "Local Hostname: $CURRENT_HOSTNAME"
+log_message "Target Share Folder: $TARGET_HOSTNAME"
 
 # 1. Create temporary mount point if missing
 if [ ! -d "$TEMPORARY_MOUNT_POINT" ]; then
@@ -146,8 +151,8 @@ fi
 if [ "$MODE" == "backup" ]; then
     stop_docker_containers
     
-    # Establish protocol specific target folder
-    TARGET_FOLDER="$TEMPORARY_MOUNT_POINT/$CURRENT_HOSTNAME"
+    # Establish protocol specific target folder using the specified TARGET_HOSTNAME
+    TARGET_FOLDER="$TEMPORARY_MOUNT_POINT/$TARGET_HOSTNAME"
     if [ ! -d "$TARGET_FOLDER" ]; then
         mkdir -p "$TARGET_FOLDER"
     fi
@@ -165,8 +170,8 @@ if [ "$MODE" == "backup" ]; then
     update_and_prune_docker
 
 elif [ "$MODE" == "restore" ]; then
-    # Look for the restore file inside the host folder or root mount depending on layout
-    RESTORE_PATH="$TEMPORARY_MOUNT_POINT/$CURRENT_HOSTNAME/$TAR_GZ_FILE"
+    # Look for the restore file inside the designated target folder or root mount depending on layout
+    RESTORE_PATH="$TEMPORARY_MOUNT_POINT/$TARGET_HOSTNAME/$TAR_GZ_FILE"
     if [ ! -f "$RESTORE_PATH" ]; then
         RESTORE_PATH="$TEMPORARY_MOUNT_POINT/$TAR_GZ_FILE"
     fi
@@ -182,7 +187,7 @@ elif [ "$MODE" == "restore" ]; then
             log_message "Error: Decompression failed."
         fi
     else
-        log_message "Error: $TAR_GZ_FILE not found on the share."
+        log_message "Error: $TAR_GZ_FILE not found on the share (Checked paths: $TEMPORARY_MOUNT_POINT/$TARGET_HOSTNAME/ and root)."
     fi
 fi
 

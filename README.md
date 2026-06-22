@@ -1,7 +1,3 @@
-# Linux-Bash-Backup-Scripts
-Scripts for backing up Linux Files
-
-
 ```markdown
 ## Docker Backup & Restore Utility Script
 
@@ -11,6 +7,8 @@ It streamlines your disaster recovery process by automatically managing the life
 
 ### 🚀 Features
 * **Unified Interface**: One script handles backups and restores across multiple protocols.
+* **Smart Host Routing**: Backups are dynamically saved into a subfolder named after the host machine.
+* **Cross-Host Restores**: Easily restore a backup from a different machine onto your current machine using hostname overrides.
 * **Docker Lifecycle Management**: Automatically stops containers before safe backup execution and safely spins them back up afterward.
 * **Environment Maintenance**: Auto-pulls updated Docker images and prunes unused volumes/dangling layers post-backup.
 * **Credential Isolation**: Keeps your storage passwords and endpoints separated cleanly in an external configuration file.
@@ -57,7 +55,7 @@ LOCAL_FOLDER="/path/to/my_local_folder"
 The script relies on standard command-line flags (`getopts`) for dynamic runtime execution.
 
 ```bash
-sudo ./docker-storage-util.sh -m <mode> -p <protocol> [-f <filename>] [-c <config_path>]
+sudo ./docker-storage-util.sh -m <mode> -p <protocol> [-f <filename>] [-H <target_hostname>] [-c <config_path>]
 
 ```
 
@@ -68,6 +66,7 @@ sudo ./docker-storage-util.sh -m <mode> -p <protocol> [-f <filename>] [-c <confi
 | **`-m`** | Mode | Defines execution type: `backup` or `restore` | **Required** |
 | **`-p`** | Protocol | Defines the network storage protocol: `cifs` or `nfs` | **Required** |
 | **`-f`** | Filename | The specific `.tar.gz` file name to extract from storage | **Required for Restore only** |
+| **`-H`** | Hostname | Overrides the host subdirectory to check on the share | Optional (Defaults to local system hostname) |
 | **`-c`** | Config Path | Path to custom configuration file | Optional (Defaults to `./docker_storage.conf`) |
 
 ---
@@ -85,16 +84,16 @@ chmod +x docker-storage-util.sh
 
 During a backup, the script automatically builds a dynamic archive name formatted as `${HOSTNAME}_DockerBackup_YYYYMMDD.tar.gz`. It places it inside a host-specific subdirectory on your remote share.
 
-* **Run a CIFS/SMB Backup:**
+* **Run a standard CIFS/SMB Backup:**
 ```bash
 sudo ./docker-storage-util.sh -m backup -p cifs
 
 ```
 
 
-* **Run a Network File System (NFS) Backup:**
+* **Run a Backup and force it into a custom folder layout (e.g., matching a cluster name):**
 ```bash
-sudo ./docker-storage-util.sh -m backup -p nfs
+sudo ./docker-storage-util.sh -m backup -p nfs -H MyClusterName
 
 ```
 
@@ -104,16 +103,16 @@ sudo ./docker-storage-util.sh -m backup -p nfs
 
 To restore, look up your target archive filename on your network share storage, specify it at execution time using the `-f` flag, and let the script safely mount and unpack the data back into your configured `LOCAL_FOLDER`.
 
-* **Run a CIFS/SMB Restore:**
+* **Standard Native Restore (Restoring a backup made by the current machine):**
 ```bash
-sudo ./docker-storage-util.sh -m restore -p cifs -f myhost_DockerBackup_20260622.tar.gz
+sudo ./docker-storage-util.sh -m restore -p cifs -f compass_DockerBackup_20260622.tar.gz
 
 ```
 
 
-* **Run an NFS Restore:**
+* **Cross-Host Restore (Restoring a backup file belonging to a *different* machine, e.g., restoring `Charlo`'s backup onto the `compass` machine):**
 ```bash
-sudo ./docker-storage-util.sh -m restore -p nfs -f myhost_DockerBackup_20260622.tar.gz
+sudo ./docker-storage-util.sh -m restore -p cifs -f Charlo_DockerBackup_20260610.tar.gz -H Charlo
 
 ```
 
@@ -125,3 +124,5 @@ If you host your configuration file securely elsewhere in the file system (e.g.,
 
 ```bash
 sudo ./docker-storage-util.sh -m backup -p nfs -c /etc/docker_storage.conf
+
+```
