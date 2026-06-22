@@ -71,6 +71,18 @@ update_and_prune_docker() {
     docker image prune -af >/dev/null
 }
 
+purge_old_backups() {
+    # Ensure RETENTION_DAYS is evaluated, is greater than 0, and the directory exists
+    if [[ -n "$RETENTION_DAYS" && "$RETENTION_DAYS" -gt 0 && -d "$TARGET_FOLDER" ]]; then
+        log_message "Checking for backups older than $RETENTION_DAYS days in $TARGET_FOLDER..."
+        
+        # Locates and removes backups that strictly match the naming schema for the current local hostname
+        find "$TARGET_FOLDER" -name "${CURRENT_HOSTNAME}_DockerBackup_*.tar.gz" -type f -mtime +"$RETENTION_DAYS" -exec rm -f {} \;
+        
+        log_message "Old backup purge completed."
+    fi
+}
+
 cleanup_and_exit() {
     if [ "$MODE" == "backup" ]; then
         start_docker_containers
@@ -90,7 +102,6 @@ cleanup_and_exit() {
 }
 
 # --- Parse Arguments ---
-# Added 'H:' to handle the hostname override flag
 while getopts "m:p:f:H:c:" opt; do
     case "$opt" in
         m) MODE=$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]') ;;
@@ -163,6 +174,8 @@ if [ "$MODE" == "backup" ]; then
     
     if [ $? -eq 0 ]; then
         log_message "Backup successfully saved to $TARGET_FOLDER/$BACKUP_FILENAME"
+        # Run retention clean-up right after a verified successful archive build
+        purge_old_backups
     else
         log_message "Error: Backup creation failed."
     fi
