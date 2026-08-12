@@ -8,7 +8,9 @@ CURRENT_HOSTNAME=$(hostname)
 TARGET_HOSTNAME=$(hostname) # Defaults to current hostname, can be overridden
 LOG_FILE="/var/log/Docker_Backup_Restore.log"
 TEMPORARY_MOUNT_POINT="/mnt/temp_docker_storage"
-CONFIG_FILE="./docker_storage.conf"
+# CONFIG_FILE="./docker_storage.conf"
+CONFIG_FILE="$(dirname "$0")/docker_storage.conf"
+
 
 # --- Helper & Lifecycle Functions ---
 
