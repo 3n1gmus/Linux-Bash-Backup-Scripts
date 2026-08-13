@@ -74,14 +74,18 @@ update_and_prune_docker() {
 }
 
 purge_old_backups() {
-    # Ensure RETENTION_DAYS is evaluated, is greater than 0, and the directory exists
-    if [[ -n "$RETENTION_DAYS" && "$RETENTION_DAYS" -gt 0 && -d "$TARGET_FOLDER" ]]; then
-        log_message "Checking for backups older than $RETENTION_DAYS days in $TARGET_FOLDER..."
+    # Ensure RETENTION_COUNT is evaluated, is greater than 0, and the directory exists
+    if [[ -n "$RETENTION_COUNT" && "$RETENTION_COUNT" -gt 0 && -d "$TARGET_FOLDER" ]]; then
+        log_message "Cleaning up old backups, keeping the newest $RETENTION_COUNT backups in $TARGET_FOLDER..."
         
-        # Locates and removes backups that strictly match the naming schema for the current local hostname
-        find "$TARGET_FOLDER" -name "${CURRENT_HOSTNAME}_DockerBackup_*.tar.gz" -type f -mtime +"$RETENTION_DAYS" -exec rm -f {} \;
+        # Find all backup files matching the naming convention, sort them by modification time (oldest first), 
+        # and delete all except the specified number of newest backups
+        find "$TARGET_FOLDER" -maxdepth 1 -name "${CURRENT_HOSTNAME}_DockerBackup_*.tar.gz" -type f -printf '%T@ %p\n' | \
+            sort -n | \
+            awk -v keep="$RETENTION_COUNT" '{files[NR]=$2} END {if (NR > keep) {for (i=1; i<=NR-keep; i++) print files[i]}}' | \
+            xargs -r rm -f
         
-        log_message "Old backup purge completed."
+        log_message "Backup retention cleanup completed."
     fi
 }
 
