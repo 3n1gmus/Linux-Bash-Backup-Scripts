@@ -9,7 +9,7 @@ Instead of juggling multiple scripts for different environments, this utility co
 * **Unified Interface**: One script handles backups and restores across multiple protocols.
 * **Smart Host Routing**: Backups are dynamically saved into a subfolder named after the host machine.
 * **Cross-Host Restores**: Easily restore a backup from a different machine onto your current machine using host directory overrides.
-* **Automated Retention Management**: Clears out old backups automatically using a configurable threshold variable (`RETENTION_DAYS`).
+* **Automated Retention Management**: Clears out old backups automatically using a configurable threshold variable (`RETENTION_COUNT`).
 * **Docker Lifecycle Management**: Automatically stops containers before safe backup execution and safely spins them back up afterward.
 * **Environment Maintenance**: Auto-pulls updated Docker images and prunes unused volumes/dangling layers post-backup.
 * **Credential Isolation**: Keeps your storage passwords and endpoints separated cleanly in an external configuration file.
@@ -46,7 +46,7 @@ NFS_SHARE_PATH="/path/to/your_nfs_share"
 LOCAL_FOLDER="/path/to/my_local_docker_folder"
 
 # --- Retention Configuration ---
-RETENTION_DAYS=14  # Keeps backups for 14 days, deletes anything older. Set to 0 to disable.
+RETENTION_COUNT=14  # Keeps the latest 14 backups 
 
 ```
 
