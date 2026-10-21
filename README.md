@@ -17,6 +17,20 @@ Instead of juggling multiple scripts for different environments, this utility co
 
 ---
 
+## Additional Sync Scripts
+
+The repository also includes standalone SSH/rsync scripts for copying selected data from a remote host to locally mounted storage. These scripts are configured by editing the variables near the top of each file; they do not use `docker_storage.conf`.
+
+| Script | Purpose | Configuration |
+| --- | --- | --- |
+| [`ssh-rsync.sh`](ssh-rsync.sh) | Syncs a configured list of remote directories into matching folders under a local destination. Uses one SSH master connection for the transfer loop. | Set `REMOTE_USER`, `REMOTE_HOST`, `LOCAL_ROOT`, and `REMOTE_DIRS`. Requires `sshpass`, `ssh`, and `rsync`; it prompts for the SSH password. Host-key checking is disabled in this script, so use it only on a trusted network and consider enabling host-key verification. |
+| [`sync_data.sh`](sync_data.sh) | Copies remote items that fit on the currently mounted drive, smallest first, while preserving relative paths. Uses a manifest to track paths across drives and leaves a configurable free-space buffer. | Set `SSH_HOST`, `REMOTE_SOURCE_DIR`, `LOCAL_MOUNT`, `LOCAL_DEST_SUBPATH`, `MANIFEST_FILE`, and `SAFETY_BUFFER_GB`. Requires SSH access, `python3` on the remote host, and local `rsync`. |
+| [`validate_sync.sh`](validate_sync.sh) | Compares the remote inventory against the manifest and reports paths that are not yet recorded. This checks manifest coverage, not file contents or transfer integrity. | Set `SSH_HOST`, `REMOTE_SOURCE_DIR`, and `MANIFEST_FILE` to match `sync_data.sh`. Requires SSH access and `python3` on the remote host. |
+
+Run these scripts as your normal user unless your mount or destination permissions require otherwise. Keep the manifest file between drive passes so the incremental sync can skip previously recorded paths.
+
+---
+
 ## 🛠️ Configuration Setup
 
 To keep your network credentials secure and separate from the script execution logic, the utility reads settings from a standalone configuration file.
